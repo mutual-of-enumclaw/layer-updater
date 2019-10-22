@@ -1,0 +1,49 @@
+service: serverless-plugin-layer-updater
+
+package:
+  excludeDevDependencies: false
+  exclude:
+    - node_modules/**
+    - nucleusLibServices/**
+    - nucleus-config/**
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-west-2'}
+  stackTags:
+    AppID: plugin-layer-updater
+    Version: "1.0.0"
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - lambda:GetFunction
+        - lambda:UpdateFunctionConfiguration
+        - lambda:GetLayerVersion
+      Resource:
+        - arn:aws:lambda:*:*:function:*
+        - arn:aws:lambda:*:*:layer:*
+    - Effect: Allow
+      Action:
+        - lambda:ListFunctions
+      Resource:
+        - '*'
+
+functions:
+  replaceLayer:
+    handler: src/functions/replaceLayer.eventHandler
+    timeout: 900
+    events:
+      - cloudwatchEvent:
+          event:
+            source:
+              - 'aws.lambda'
+            detail-type:
+              - AWS API Call via CloudTrail
+            detail:
+              eventSource:
+                - lambda.amazonaws.com
+              eventName:
+                - PublishLayerVersion20181031
