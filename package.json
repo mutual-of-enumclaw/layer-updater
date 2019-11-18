@@ -6,8 +6,10 @@
     "description": "Automatically adds the latest layer to a lambda on deployment, and updates lambdas when a layer has been updated",
     "license": "MIT",
     "scripts": {
-        "build": "",
-        "test": "npx jest"
+        "build": "npm run package",
+        "postbuild": "mv .serverless/serverless-plugin-layer-updater.zip ./",
+        "package": "npx sls package",
+        "deploy": "npx sls deploy"
     },
     "keywords": [
         "serverless",
