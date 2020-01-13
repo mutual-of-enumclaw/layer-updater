@@ -9,6 +9,7 @@ class ServerlessPlugin {
 
         this.hooks = {
         'before:package:createDeploymentArtifacts': this.package.bind(this),
+        'before:package:function:package': this.package.bind(this)
         };
     }
 
