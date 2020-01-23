@@ -19,9 +19,9 @@ module.exports.eventHandler = async (event) => {
     let layerSecret;
     
     try {
-    layerSecret = await secrets.describeSecret({
-        SecretId: key,
-    }).promise();
+        layerSecret = await secrets.describeSecret({
+            SecretId: key,
+        }).promise();
     } catch (err) {
         console.log(err);
         if(err.code !== 'ResourceNotFoundException') {
@@ -33,13 +33,14 @@ module.exports.eventHandler = async (event) => {
         latest: event.detail.responseElements.layerVersionArn
     });
     if(!layerSecret) {
+        console.log('Creating secret')
         await secrets.createSecret({
             Name: key,
             SecretString: value
         }).promise();
     } else {
         await secrets.updateSecret({
-            SecretId: layerSecret.SecretId,
+            SecretId: key,
             SecretString: value
         }).promise();
     }
