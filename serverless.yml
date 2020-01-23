@@ -28,6 +28,7 @@ provider:
     - Effect: Allow
       Action:
         - lambda:ListFunctions
+        - ssm:PutParameter
       Resource:
         - '*'
 

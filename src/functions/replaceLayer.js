@@ -1,5 +1,6 @@
 const aws = require('aws-sdk');
 const lambda = new aws.Lambda();
+const ssm = new aws.SSM();
 
 module.exports.eventHandler = async (event) => {
     console.log(JSON.stringify(event));
@@ -10,7 +11,14 @@ module.exports.eventHandler = async (event) => {
         return;
     }
 
-    const prefix = layerArn.substr(0, layerArn.lastIndexOf(':'));
+    const prefix = event.detail.responseElements.layerArn;
+
+    const lastColon = prefix.lastIndexOf(':') + 1;
+    await ssm.putParameter({
+        Name: `layers-${prefix.slice(lastColon, prefix.length)}-latest`,
+        Type: 'String',
+        Value: event.detail.responseElements.layerVersionArn
+    }).promise();
 
     let marker = undefined;
     const promises = [];
@@ -41,6 +49,7 @@ module.exports.eventHandler = async (event) => {
                 Layers: layers
             }).promise();
         }));
+        await Promise.all(promises);
     } while(marker);
 
     await Promise.all(promises);
