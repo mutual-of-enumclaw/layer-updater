@@ -1,6 +1,6 @@
 const aws = require('aws-sdk');
 const lambda = new aws.Lambda();
-const ssm = new aws.SSM();
+const secrets = new aws.SecretsManager();
 
 module.exports.eventHandler = async (event) => {
     console.log(JSON.stringify(event));
@@ -14,11 +14,35 @@ module.exports.eventHandler = async (event) => {
     const prefix = event.detail.responseElements.layerArn;
 
     const lastColon = prefix.lastIndexOf(':') + 1;
-    await ssm.putParameter({
-        Name: `layers-${prefix.slice(lastColon, prefix.length)}-latest`,
-        Type: 'String',
-        Value: event.detail.responseElements.layerVersionArn
+    const key = `layers/${prefix.slice(lastColon, prefix.length)}`;
+
+    let layerSecret;
+    
+    try {
+    layerSecret = await secrets.describeSecret({
+        SecretId: key,
     }).promise();
+    } catch (err) {
+        console.log(err);
+        if(err.code !== 'ResourceNotFoundException') {
+            throw err;
+        }
+    }
+
+    const value = JSON.stringify({
+        latest: event.detail.responseElements.layerVersionArn
+    });
+    if(!layerSecret) {
+        await secrets.createSecret({
+            Name: key,
+            SecretString: value
+        }).promise();
+    } else {
+        await secrets.updateSecret({
+            SecretId: layerSecret.SecretId,
+            SecretString: value
+        }).promise();
+    }
 
     let marker = undefined;
     const promises = [];

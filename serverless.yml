@@ -22,13 +22,16 @@ provider:
         - lambda:GetFunction
         - lambda:UpdateFunctionConfiguration
         - lambda:GetLayerVersion
+        - secretsmanager:CreateSecret
+        - secretsmanager:UpdateSecret
+        - secretsmanager:DescribeSecret
       Resource:
         - arn:aws:lambda:*:*:function:*
         - arn:aws:lambda:*:*:layer:*
+        - arn:aws:secretsmanager:*:*:secret:layers/*
     - Effect: Allow
       Action:
         - lambda:ListFunctions
-        - ssm:PutParameter
       Resource:
         - '*'
 
