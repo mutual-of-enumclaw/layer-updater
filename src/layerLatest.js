@@ -4,12 +4,12 @@ const aws = require('aws-sdk');
 
 class ServerlessPlugin {
     constructor(serverless, options) {
+        console.log('Setting up serverless-plugin-layer-updater');
         this.serverless = serverless;
         this.options = options;
 
         this.hooks = {
-        'before:package:createDeploymentArtifacts': this.package.bind(this),
-        'before:package:function:package': this.package.bind(this)
+            'before:deploy:function:packageFunction': this.package.bind(this),
         };
     }
 
@@ -17,7 +17,7 @@ class ServerlessPlugin {
      * Before packaging functions must be redirected to point at the binary built
      */
     async package() {
-        this.serverless.cli.log(`Getting cloudformation`);
+        this.serverless.cli.log(`Finding layers to fix`);
 
         aws.config.region = this.serverless.service.provider.region || 'us-east-1';
         if(this.serverless.service.provider.profile) {
@@ -29,38 +29,22 @@ class ServerlessPlugin {
             var credentials = new aws.SharedIniFileCredentials({profile: this.serverless.providers.aws.options['aws-profile']});
             aws.config.credentials = credentials;
         }
-        const lambda = new aws.Lambda();
-        const layers = [];
-        let Marker = undefined;
-        do {
-            const layersResponse = await lambda.listLayers({
-                CompatibleRuntime: this.serverless.service.provider.runtime,
-                Marker
-            }).promise();
-            layers.push(...layersResponse.Layers);
-            Marker = layersResponse.NextMarker;
-        } while(Marker);
-
-        Object.values(this.serverless.service.functions).forEach(f => {
-            if(f.layers) {
-                f.layers.forEach((layer, li) => {
-                    if(layer.endsWith(':latest')) {
-                        let prefix = layer.substr(0, layer.indexOf(':latest'));
-                        prefix = prefix.substr(prefix.lastIndexOf(':'), prefix.length);
-                        
-                        const latest = layers.find(item => {
-                            if(item.LayerArn.indexOf(prefix)) {
-                                return item;
-                            }
-                        });
-                        if(!latest) {
-                            throw new Error('Could not find layer ' + layer);
-                        }
-                        f.layers[li] = latest.LatestMatchingVersion.LayerVersionArn;
-                    }
-                });
+        const secretsmanager = new aws.SecretsManager();
+        const func = this.serverless.service.functions[this.options.function || this.options.f];
+        
+        for(let i = 0; i < func.layers.length; i++) {
+            const x = func.layers[i];
+            const match = x.match(/(?<=({{resolve:secretsmanager:))layers\/.*?(?=(:SecretString:latest}}))/);
+            const paramMatch = x.match("(?<=(:SecretString:))latest?(?=(}}))");
+            if(match.length > 0) {
+                const secret = await secretsmanager.getSecretValue({
+                    SecretId: match[0]
+                }).promise();
+                const obj = JSON.parse(secret.SecretString);
+                this.serverless.cli.log('Assigning layer');
+                func.layers[i] = obj[paramMatch[0]];
             }
-        });
+        };
     }
 }
 
