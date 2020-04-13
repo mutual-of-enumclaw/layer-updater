@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-version:
+      nodejs: 12
+    commands:
+      - npm install -g typescript
+      - npm install -g jest
+    finally:
+      - echo Install Complete
+  pre_build:
+    commands:
+      - aws s3 cp $S3HomePath ~ --recursive
+      - npm ci
+  build:
+    commands:
+      - npm run test
+      - npm publish --access public
