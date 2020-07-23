@@ -1,6 +1,6 @@
 {
     "name": "serverless-plugin-layer-updater",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "main": "src/layerLatest.js",
     "publisher": "Mutual of Enumclaw",
     "description": "Automatically adds the latest layer to a lambda on deployment, and updates lambdas when a layer has been updated",
