@@ -67,7 +67,7 @@ module.exports.eventHandler = async (event) => {
             if(index < 0) {
                 return;
             }
-            console.log('Applying new version of layer to lambda');
+            console.log(`Applying new version of layer to lambda ${item.FunctionName}`);
             layers[index] = layerArn;
 
             try {
