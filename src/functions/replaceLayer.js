@@ -11,10 +11,10 @@ module.exports.eventHandler = async (event) => {
         return;
     }
 
-    const prefix = event.detail.responseElements.layerArn;
+    const lastColon = layerArn.lastIndexOf(':') + 1;
+    const prefix = layerArn.slice(0, lastColon);
 
-    const lastColon = prefix.lastIndexOf(':') + 1;
-    const key = `layers/${prefix.slice(lastColon, prefix.length)}`;
+    const key = `layers/${layerArn.slice(lastColon, prefix.length)}`;
 
     let layerSecret;
     
@@ -48,6 +48,8 @@ module.exports.eventHandler = async (event) => {
     let marker = undefined;
     const promises = [];
     let failed = 0;
+    const lookup = {};
+    lookup[key] = layerArn;
 
     do {
         let listResponse = await lambda.listFunctions({
@@ -62,13 +64,14 @@ module.exports.eventHandler = async (event) => {
             if(!item.Layers) {
                 return;
             }
-            const layers = item.Layers.map(layer => layer.Arn);
+            let layers = item.Layers.map(layer => layer.Arn);
             const index = layers.findIndex(layer => layer.startsWith(prefix));
             if(index < 0) {
                 return;
             }
             console.log(`Applying new version of layer to lambda ${item.FunctionName}`);
-            layers[index] = layerArn;
+            layers = await Promise.all(layers.map(arn => getLatestLayer(arn, lookup)));
+            console.log('Layers', layers);
 
             try {
                 await lambda.updateFunctionConfiguration({
@@ -101,4 +104,27 @@ async function awaitComplete(promises) {
     }
 
     return failedCount;
+}
+
+async function getLatestLayer(layerArn, lookup) {
+    let prefix = layerArn.slice(0, layerArn.lastIndexOf(':'));
+    prefix = prefix.slice(prefix.lastIndexOf(':') + 1, prefix.length);
+
+    const key = `layers/${prefix}`;
+    console.log('Layer Key', key);
+
+    if(lookup[key]) {
+        return lookup[layerArn];
+    }
+
+    try {
+        let layerSecret = await secrets.getSecretValue({
+            SecretId: key
+        }).promise();
+
+        lookup[key] = JSON.parse(layerSecret.SecretString).latest;
+    } catch (err) {
+        lookup[key] = layerArn;
+        return layerArn;
+    }
 }
