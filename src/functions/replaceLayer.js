@@ -58,7 +58,7 @@ module.exports.eventHandler = async (event) => {
         console.log(JSON.stringify(listResponse));
         marker = listResponse.NextMarker;
 
-        promises.push(...listResponse.Functions.map(item => {
+        promises.push(...listResponse.Functions.map(async (item) => {
             if(!item.Layers) {
                 return;
             }
@@ -70,10 +70,14 @@ module.exports.eventHandler = async (event) => {
             console.log('Applying new version of layer to lambda');
             layers[index] = layerArn;
 
-            return lambda.updateFunctionConfiguration({
-                FunctionName: item.FunctionName,
-                Layers: layers
-            }).promise();
+            try {
+                await lambda.updateFunctionConfiguration({
+                    FunctionName: item.FunctionName,
+                    Layers: layers
+                }).promise();
+            } catch (err) {
+                console.log(item.FunctionName, err);
+            }
         }));
         failed += await awaitComplete(promises);
     } while(marker);
