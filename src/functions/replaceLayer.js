@@ -47,6 +47,7 @@ module.exports.eventHandler = async (event) => {
 
     let marker = undefined;
     const promises = [];
+    let failed = 0;
 
     do {
         let listResponse = await lambda.listFunctions({
@@ -74,8 +75,26 @@ module.exports.eventHandler = async (event) => {
                 Layers: layers
             }).promise();
         }));
-        await Promise.all(promises);
+        failed += await awaitComplete(promises);
     } while(marker);
 
-    await Promise.all(promises);
+    failed += await awaitComplete(promises);
+
+    if(failed > 0) {
+        throw new Error(`Could not update all layer references. Failed count ${failed}`);
+    }
+}
+
+async function awaitComplete(promises) {
+    let failedCount = 0;
+    for(const p of promises) {
+        try {
+        await p;
+        } catch (err) {
+            console.log(err);
+            failedCount++;
+        }
+    }
+
+    return failedCount;
 }
