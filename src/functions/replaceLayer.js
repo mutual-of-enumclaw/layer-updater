@@ -73,6 +73,10 @@ module.exports.eventHandler = async (event) => {
             layers = await Promise.all(layers.map(arn => getLatestLayer(arn, lookup)));
             console.log('Layers', layers);
 
+            if(layers.filter(x => Object.keys(x).length > 0) != item.Layers) {
+                throw new Error(`Layers after processing don't match before processing (${layers})(${item.layers})`);
+            }
+
             try {
                 await lambda.updateFunctionConfiguration({
                     FunctionName: item.FunctionName,
