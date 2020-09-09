@@ -127,6 +127,7 @@ async function getLatestLayer(layerArn, lookup) {
         }).promise();
 
         lookup[key] = JSON.parse(layerSecret.SecretString).latest;
+        return lookup[key];
     } catch (err) {
         lookup[key] = layerArn;
         return layerArn;
