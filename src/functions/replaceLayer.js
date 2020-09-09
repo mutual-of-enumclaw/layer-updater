@@ -130,6 +130,7 @@ async function getLatestLayer(layerArn, lookup) {
         return lookup[key];
     } catch (err) {
         lookup[key] = layerArn;
-        return layerArn;
     }
+
+    return lookup[key];
 }
