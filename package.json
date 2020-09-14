@@ -18,9 +18,9 @@
         "update"
     ],
     "dependencies": {
-        "aws-sdk": "^2.553.0"
     },
     "devDependencies": {
+        "aws-sdk": "^2.553.0",
         "jest": "^24.8.0"
     }
 }

@@ -11,10 +11,12 @@ module.exports.eventHandler = async (event) => {
         return;
     }
 
-    const lastColon = layerArn.lastIndexOf(':') + 1;
-    const prefix = layerArn.slice(0, lastColon);
+    let lastColon = layerArn.lastIndexOf(':') + 1;
+    const prefix = layerArn.slice(0, lastColon - 1);
+    lastColon = prefix.lastIndexOf(':') + 1;
 
     const key = `layers/${layerArn.slice(lastColon, prefix.length)}`;
+    console.log(`Getting layer reference ${key}`);
 
     let layerSecret;
     
@@ -39,6 +41,7 @@ module.exports.eventHandler = async (event) => {
             SecretString: value
         }).promise();
     } else {
+        console.log(`Updating layer reference ${key}: ${value}`);
         await secrets.updateSecret({
             SecretId: key,
             SecretString: value
@@ -70,8 +73,10 @@ module.exports.eventHandler = async (event) => {
                 return;
             }
             console.log(`Applying new version of layer to lambda ${item.FunctionName}`);
+            console.log('Layers Before', layers);
             layers = await Promise.all(layers.map(arn => getLatestLayer(arn, lookup)));
             console.log('Layers', layers);
+            console.log(item.Layers.length);
 
             if(layers.filter(x => x? true : false).length != item.Layers.length) {
                 throw new Error(`Layers after processing don't match before processing (${layers})(${item.layers})`);
@@ -118,10 +123,11 @@ async function getLatestLayer(layerArn, lookup) {
     console.log('Layer Key', key);
 
     if(lookup[key]) {
-        return lookup[layerArn];
+        return lookup[key];
     }
 
     try {
+        console.log(`Getting secret for key ${key}`);
         let layerSecret = await secrets.getSecretValue({
             SecretId: key
         }).promise();
@@ -129,6 +135,7 @@ async function getLatestLayer(layerArn, lookup) {
         lookup[key] = JSON.parse(layerSecret.SecretString).latest;
         return lookup[key];
     } catch (err) {
+        console.log('err');
         lookup[key] = layerArn;
     }
 

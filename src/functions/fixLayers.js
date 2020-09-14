@@ -1,14 +1,13 @@
 const aws = require('aws-sdk');
 
-process.env.Region = 'us-west-2';
-const cf = new aws.CloudFormation({ region: 'us-west-2' });
-const lambda = new aws.Lambda({ region: process.env.Region });
-const secrets = new aws.SecretsManager({ region: process.env.Region });
+const cf = new aws.CloudFormation();
+const lambda = new aws.Lambda();
+const secrets = new aws.SecretsManager();
 
 async function fixLayers() {
     let token;
-
     do {
+        console.log('Getting stacks');
         const stacks = await cf.listStacks({
             NextToken: token
         }).promise();
@@ -19,13 +18,14 @@ async function fixLayers() {
                 continue;
             }
             
+            console.log(`Getting template for stack ${s.StackName}`);
             let template;
             try {
                 template = JSON.parse((await cf.getTemplate({
                     StackName: s.StackName
                 }).promise()).TemplateBody);
             } catch (err) {
-                // console.error(err);
+                console.error(err);
                 continue;
             }
 
@@ -37,6 +37,7 @@ async function fixLayers() {
                 }
 
                 if(!resources) {
+                    console.log(`Getting stack resources for ${s.StackName}`);
                     resources = await cf.listStackResources({
                         StackName: s.StackName
                     }).promise();
@@ -45,6 +46,7 @@ async function fixLayers() {
                 if(!r.Properties || !r.Properties.Layers) {
                     continue;
                 }
+                console.log(`Finding function info ${rKey}`);
                 const func = resources.StackResourceSummaries.find(x => x.LogicalResourceId == rKey);
                 if(func) {
                     console.log(func.PhysicalResourceId);
@@ -79,4 +81,4 @@ async function getLayerArn(layer) {
     return JSON.parse(secret.SecretString).latest;
 }
 
-fixLayers();
+module.exports.fixLayers = fixLayers;
