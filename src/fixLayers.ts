@@ -1,8 +1,8 @@
-const aws = require('aws-sdk');
+import { CloudFormation, Lambda, SecretsManager } from 'aws-sdk';
 
-const cf = new aws.CloudFormation();
-const lambda = new aws.Lambda();
-const secrets = new aws.SecretsManager();
+const cf = new CloudFormation();
+const lambda = new Lambda();
+const secrets = new SecretsManager();
 
 async function fixLayers() {
     let token;
@@ -50,7 +50,7 @@ async function fixLayers() {
                 const func = resources.StackResourceSummaries.find(x => x.LogicalResourceId == rKey);
                 if(func) {
                     console.log(func.PhysicalResourceId);
-                    const layers = await Promise.all(r.Properties.Layers.map(x => getLayerArn(x)));
+                    const layers: string[] = await Promise.all(r.Properties.Layers.map(x => getLayerArn(x)));
                     const funcConfig = await lambda.getFunctionConfiguration({
                         FunctionName: func.PhysicalResourceId
                     }).promise();
