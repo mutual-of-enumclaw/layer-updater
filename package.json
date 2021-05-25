@@ -1,15 +1,12 @@
 {
     "name": "serverless-plugin-layer-updater",
     "version": "1.0.5",
-    "main": "src/layerLatest.js",
     "publisher": "Mutual of Enumclaw",
     "description": "Automatically adds the latest layer to a lambda on deployment, and updates lambdas when a layer has been updated",
     "license": "MIT",
     "scripts": {
-        "build": "npm run package",
-        "postbuild": "mv .serverless/serverless-plugin-layer-updater.zip ./",
-        "package": "npx sls package",
-        "deploy": "npx sls deploy"
+        "watch": "npx samtsc --skip-init-deploy",
+        "deploy": "npx samtsc --deploy-only"
     },
     "keywords": [
         "serverless",
@@ -19,7 +16,10 @@
     ],
     "dependencies": {},
     "devDependencies": {
-        "aws-sdk": "^2.553.0",
-        "jest": "^24.8.0"
+        "@types/aws-lambda": "^8.10.76",
+        "@types/node": "^15.3.0",
+        "aws-sdk": "^2.909.0",
+        "jest": "^24.8.0",
+        "samtsc": "^1.0.50"
     }
 }

@@ -7,10 +7,8 @@ phases:
     commands:
   pre_build:
     commands:
-      - if [ "$Validate" != "true" ]; then aws s3 cp $S3HomePath ~ --recursive; fi
       - npm ci
   build:
     commands:
       - npm run test
-      - if [ "$Validate" != "true" ]; then npm publish --access public; fi
       

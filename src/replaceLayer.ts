@@ -1,6 +1,7 @@
-const aws = require('aws-sdk');
-const lambda = new aws.Lambda();
-const secrets = new aws.SecretsManager();
+import { Lambda, SecretsManager } from 'aws-sdk';
+
+const lambda = new Lambda();
+const secrets = new SecretsManager();
 
 module.exports.eventHandler = async (event) => {
     console.log(JSON.stringify(event));
@@ -53,6 +54,7 @@ module.exports.eventHandler = async (event) => {
     let failed = 0;
     const lookup = {};
     lookup[key] = layerArn;
+    const eventTime = new Date(event.detail.eventTime);
 
     do {
         let listResponse = await lambda.listFunctions({
@@ -67,6 +69,9 @@ module.exports.eventHandler = async (event) => {
             if(!item.Layers) {
                 return;
             }
+            if(new Date(item.LastModified).getTime() > eventTime.getTime()) {
+                return;
+            }
             let layers = item.Layers.map(layer => layer.Arn);
             const index = layers.findIndex(layer => layer.startsWith(prefix));
             if(index < 0) {
@@ -79,7 +84,7 @@ module.exports.eventHandler = async (event) => {
             console.log(item.Layers.length);
 
             if(layers.filter(x => x? true : false).length != item.Layers.length) {
-                throw new Error(`Layers after processing don't match before processing (${layers})(${item.layers})`);
+                throw new Error(`Layers after processing don't match before processing (${layers})(${item.Layers})`);
             }
 
             try {

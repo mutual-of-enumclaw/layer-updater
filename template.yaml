@@ -1,0 +1,88 @@
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: nodejs14.x
+    MemorySize: 128
+    Timeout: 900
+    Tags:
+      AppID: plugin-layer-updater
+      Version: "1.0.0"
+      
+Resources:
+  fixLayers:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src
+      Handler: fixLayers.fixLayers
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - lambda:GetFunction
+              - lambda:GetFunctionConfiguration
+              - lambda:UpdateFunctionConfiguration
+              - lambda:GetLayerVersion
+              - secretsmanager:CreateSecret
+              - secretsmanager:UpdateSecret
+              - secretsmanager:DescribeSecret
+              - secretsmanager:GetSecretValue
+              - cloudformation:ListStacks
+              - cloudformation:GetTemplate
+              - cloudformation:ListStackResources
+            Resource:
+              - arn:aws:lambda:*:*:function:*
+              - arn:aws:lambda:*:*:layer:*
+              - arn:aws:secretsmanager:*:*:secret:layers/*
+              - arn:aws:cloudformation:*:*:*
+          - Effect: Allow
+            Action:
+              - lambda:ListFunctions
+            Resource:
+              - '*'
+  replaceLayer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src
+      Handler: replaceLayer.eventHandler
+      Events:
+        EventRule:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.lambda
+              detail-type:
+                - AWS API Call via CloudTrail
+              detail:
+                eventSource:
+                  - lambda.amazonaws.com
+                eventName:
+                  - PublishLayerVersion20181031
+          Metadata:
+            StackeryName: LayerUpdateEvent
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - lambda:GetFunction
+              - lambda:GetFunctionConfiguration
+              - lambda:UpdateFunctionConfiguration
+              - lambda:GetLayerVersion
+              - secretsmanager:CreateSecret
+              - secretsmanager:UpdateSecret
+              - secretsmanager:DescribeSecret
+              - secretsmanager:GetSecretValue
+              - cloudformation:ListStacks
+              - cloudformation:GetTemplate
+              - cloudformation:ListStackResources
+            Resource:
+              - arn:aws:lambda:*:*:function:*
+              - arn:aws:lambda:*:*:layer:*
+              - arn:aws:secretsmanager:*:*:secret:layers/*
+              - arn:aws:cloudformation:*:*:*
+          - Effect: Allow
+            Action:
+              - lambda:ListFunctions
+            Resource:
+              - '*'
