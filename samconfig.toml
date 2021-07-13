@@ -2,10 +2,10 @@ version=0.1
 [default.deploy.parameters]
 base_stack = "serverless-plugin-layer-updater"
 environment = "snd"
-s3_bucket = "${REPLACE ME}"
+s3_bucket = "moe-deployment-snd"
 s3_prefix = "moe-tech/layer-updater"
 region = "us-west-2"
-confirm_changeset = false
+confirm_changeset = "true"
 capabilities = "CAPABILITY_IAM"
 parm_layer = "true"
 env_aware = "true"
