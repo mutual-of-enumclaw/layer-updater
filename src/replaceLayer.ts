@@ -7,13 +7,14 @@ module.exports.eventHandler = async (event) => {
     console.log(JSON.stringify(event));
 
     const layerArn = event.detail.responseElements.layerVersionArn;
-
+    console.log(`processing layerArn: ${layerArn}`);
     if(event.detail.responseElements.description.indexOf('auto update') < 0) {
         return;
     }
 
     let lastColon = layerArn.lastIndexOf(':') + 1;
     const prefix = layerArn.slice(0, lastColon - 1);
+    console.log(`prefix: ${prefix}`);
     lastColon = prefix.lastIndexOf(':') + 1;
 
     const key = `layers/${layerArn.slice(lastColon, prefix.length)}`;
@@ -79,7 +80,17 @@ module.exports.eventHandler = async (event) => {
             }
             console.log(`Applying new version of layer to lambda ${item.FunctionName}`);
             console.log('Layers Before', layers);
-            layers = await Promise.all(layers.map(arn => getLatestLayer(arn, lookup)));
+            layers = await Promise.all(layers.map((arn) => {
+                if (arn.startsWith(prefix)) {
+                    console.log(`Getting latest layer for ${arn} in ${item.FunctionName}`);
+                    return getLatestLayer(arn, lookup);
+                }
+                else {
+                    console.log(`Not replacing layer ${arn} in ${item.FunctionName}`);
+                    return arn;
+                }
+            }));
+
             console.log('Layers', layers);
             console.log(item.Layers.length);
 
@@ -110,7 +121,7 @@ async function awaitComplete(promises) {
     let failedCount = 0;
     for(const p of promises) {
         try {
-        await p;
+            await p;
         } catch (err) {
             console.log(err);
             failedCount++;
