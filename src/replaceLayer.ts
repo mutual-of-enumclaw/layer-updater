@@ -95,9 +95,9 @@ module.exports.eventHandler = async (event) => {
             layers = await Promise.all(layers.map((arn) => {
                 if (arn.startsWith(prefix)) {
                     console.log(`Getting latest layer for ${arn} in ${item.FunctionName}`);
-                    // return getLatestLayer(arn, lookup);
-                    // no need to lookup the arn in secrets manager we have it already.
-                    return layerArn;
+                    return getLatestLayer(arn, lookup);
+                    // if we modify this to run in a fifo queue to eliminate concurrency then dont look it up.
+                    // return layerArn;
                 }
                 else {
                     console.log(`Not replacing layer ${arn} in ${item.FunctionName}`);
